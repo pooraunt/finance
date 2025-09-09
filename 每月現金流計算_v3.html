@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>每月現金流規劃計算機 v3</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f7f6;
+            color: #333;
+        }
+        .container {
+            max-width: 900px;
+            margin: auto;
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+        }
+        h1, h2 {
+            color: #0056b3;
+            border-bottom: 2px solid #0056b3;
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+        .input-section {
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+        }
+        .input-section h3 {
+            margin-top: 0;
+            margin-bottom: 20px;
+            font-size: 1.2em;
+        }
+        .etf-section {
+            background-color: #e9f5ff; /* 淺藍色系 */
+            border-left: 5px solid #007bff;
+        }
+        .finance-section {
+            background-color: #eaf6f2; /* 淺綠色系 */
+            border-left: 5px solid #28a745;
+        }
+        .row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .column {
+            flex: 1;
+            min-width: 200px;
+        }
+        .input-group {
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+        }
+        .input-group label {
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        .input-group input {
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .target-income-group label {
+            font-size: 1.2em;
+            color: #0056b3;
+        }
+        .target-income-group input {
+            font-size: 1.2em;
+            font-weight: bold;
+            border-color: #0056b3;
+        }
+        .output-section {
+            background-color: #fff3cd; /* 淺黃色系 */
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border: 1px solid #ffeeba;
+        }
+        .output-section h2 {
+            color: #856404;
+            border-bottom-color: #856404;
+        }
+        .output-section p {
+            font-size: 1.1em;
+            margin: 12px 0;
+        }
+        .output-section span.value {
+            font-weight: bold;
+            color: #d9534f;
+            font-size: 1.2em;
+        }
+         .output-section .label {
+            color: #333;
+            font-weight: normal;
+            font-size: 1em;
+        }
+        #allocation-warning {
+            color: red;
+            font-weight: bold;
+            display: none;
+        }
+        .formula-section {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-left: 5px solid #17a2b8;
+        }
+        .formula-section h2 {
+            color: #17a2b8;
+            border-bottom-color: #17a2b8;
+        }
+        .formula-section p {
+            line-height: 1.8;
+        }
+        .formula-section code {
+            background-color: #e3e3e3;
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+        button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: bold;
+            margin-right: 10px;
+            margin-top: 5px;
+        }
+        .btn-add {
+            background-color: #007bff;
+            color: white;
+        }
+        .btn-calculate {
+            background-color: #28a745;
+            color: white;
+        }
+        .btn-delete {
+            background-color: #dc3545;
+            color: white;
+            padding: 5px 10px;
+            font-size: 0.8em;
+            align-self: flex-end;
+        }
+        .etf-item {
+            border: 1px solid #ccc;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            background-color: #fff;
+        }
+        .etf-item h4 {
+            margin-top: 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        @media (max-width: 768px) {
+            .row {
+                flex-direction: column;
+                gap: 0;
+            }
+            .column {
+                min-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>每月現金流規劃計算機 v3</h1>
+    <p>請新增您要投資的標的，並輸入相關財務條件，完成後點擊「計算」按鈕。</p>
+
+    <div class="input-group target-income-group">
+        <label for="target-monthly-income">目標每月實領債息 (元)</label>
+        <input type="number" id="target-monthly-income" value="20000">
+    </div>
+
+    <div class="input-section etf-section">
+        <h3>投資標的設定</h3>
+        <div id="etf-list">
+            </div>
+        <button class="btn-add" onclick="addEtf()">新增標的</button>
+    </div>
+
+    <div class="input-section finance-section">
+        <h3>財務條件設定</h3>
+        <div class="row">
+            <div class="column">
+                <div class="input-group">
+                    <label for="leverage-ratio">本金與質押借款比率 (1:X)</label>
+                    <input type="number" id="leverage-ratio" value="1" step="0.1">
+                </div>
+            </div>
+            <div class="column">
+                <div class="input-group">
+                    <label for="loan-interest">質押借款年利率 (%)</label>
+                    <input type="number" id="loan-interest" value="2.6" step="0.1">
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <button class="btn-calculate" onclick="calculate()">進行計算</button>
+
+    <div class="output-section">
+        <h2>計算結果</h2>
+        <p id="allocation-warning">注意：所有標的的資金分配比例總和不為 100%！</p>
+        <p><span class="label">為達到每月實領</span> <span class="value" id="target-income-display">0</span> <span class="label">元的現金流...</span></p>
+        <p><span class="label">您需要準備的<strong>自有本金</strong>為：</span><span class="value" id="result-principal">0</span><span class="label"> 元</span></p>
+        <p><span class="label">總投入市場的<strong>總投資金額</strong> (本金+借款) 為：</span><span class="value" id="result-total-investment">0</span><span class="label"> 元</span></p>
+        <p><span class="label">每月需支付的<strong>借款利息</strong>約為：</span><span class="value" id="result-monthly-interest">0</span><span class="label"> 元</span></p>
+        <hr>
+        <div id="result-details">
+            </div>
+    </div>
+
+    <div class="formula-section">
+        <h2>計算公式說明</h2>
+        <p>本計算機的邏輯是先算出為了達到「稅後淨利」所需的「稅前總利息」，再反推出總投資額，最終算出所需的本金和股數。</p>
+        <ol>
+            <li>
+                <strong>計算加權平均殖利率 (Weighted Average Yield)：</strong>
+                <p><code>加權平均殖利率 = Σ (殖利率ᵢ × 分配率ᵢ)</code></p>
+                <p>將所有標的的「殖利率」與其「資金分配比例」相乘後，再全部加總。</p>
+            </li>
+            <li>
+                <strong>計算有效年化利率 (Effective Annual Rate)：</strong>
+                <p><code>有效年化利率 = 加權平均殖利率 - (借款利率 × 槓桿乘數)</code></p>
+                <p>其中 <code>槓桿乘數 = 借款金額 / 總投資金額</code>。在您的 1:1 案例中，借款是總投資的一半，所以乘數為 0.5。</p>
+            </li>
+            <li>
+                <strong>計算所需的總投資金額 (Total Investment)：</strong>
+                <p><code>目標年化淨收入 = 目標月收入 × 12</code></p>
+                <p><code>總投資金額 = 目標年化淨收入 / 有效年化利率</code></p>
+                <p>這是為了產生足夠的淨利息所需要投入市場的總資金。</p>
+            </li>
+            <li>
+                <strong>計算自有本金與各項目投資額 (Principal & Allocation)：</strong>
+                <p><code>自有本金 = 總投資金額 / (1 + 借款比例)</code></p>
+                <p><code>標的ᵢ投資額 = 總投資金額 × 分配率ᵢ</code></p>
+            </li>
+            <li>
+                <strong>計算需購買的股數 (Number of Shares)：</strong>
+                <p><code>標的ᵢ股數 = 標的ᵢ投資額 / 標的ᵢ股價</code></p>
+            </li>
+             <li>
+                <strong>計算每月利息支出 (Monthly Interest Payment)：</strong>
+                <p><code>借款金額 = 總投資金額 - 自有本金</code></p>
+                <p><code>每月利息 = (借款金額 × 借款年利率) / 12</code></p>
+            </li>
+        </ol>
+    </div>
+</div>
+
+<script>
+    let etfCounter = 0;
+
+    function addEtf(ticker = '', price = '', yieldVal = '', ratio = '') {
+        etfCounter++;
+        const etfList = document.getElementById('etf-list');
+        const newItem = document.createElement('div');
+        newItem.classList.add('etf-item');
+        newItem.id = `etf-item-${etfCounter}`;
+        
+        // --- FIX START: Corrected the quotation marks around class names ---
+        newItem.innerHTML = `
+            <h4>
+                <span>標的 ${etfCounter}</span>
+                <button class="btn-delete" onclick="removeEtf(${etfCounter})">刪除</button>
+            </h4>
+            <div class="row">
+                <div class="column">
+                    <div class="input-group">
+                        <label>代號</label>
+                        <input type="text" class="etf-ticker" value="${ticker}">
+                    </div>
+                </div>
+                <div class="column">
+                    <div class="input-group">
+                        <label>收盤價格 (元)</label>
+                        <input type="number" class="etf-price" step="0.01" value="${price}">
+                    </div>
+                </div>
+                <div class="column">
+                    <div class="input-group">
+                        <label>年化殖利率 (%)</label>
+                        <input type="number" class="etf-yield" step="0.1" value="${yieldVal}">
+                    </div>
+                </div>
+                <div class="column">
+                    <div class="input-group">
+                        <label>資金分配比例 (%)</label>
+                        <input type="number" class="etf-ratio" value="${ratio}">
+                    </div>
+                </div>
+            </div>
+        `;
+        // --- FIX END ---
+        
+        etfList.appendChild(newItem);
+    }
+
+    function removeEtf(id) {
+        const itemToRemove = document.getElementById(`etf-item-${id}`);
+        if (itemToRemove) {
+            itemToRemove.remove();
+        }
+    }
+
+    function calculate() {
+        // --- 讀取通用設定 ---
+        const targetMonthlyIncome = parseFloat(document.getElementById('target-monthly-income').value) || 0;
+        const leverageRatio = parseFloat(document.getElementById('leverage-ratio').value) || 0;
+        const loanInterest = parseFloat(document.getElementById('loan-interest').value) / 100 || 0;
+
+        // --- 收集所有標的資料 ---
+        const etfItems = document.querySelectorAll('.etf-item');
+        let weightedAvgYield = 0;
+        let totalRatio = 0;
+        const etfs = [];
+
+        etfItems.forEach(item => {
+            const ticker = item.querySelector('.etf-ticker').value;
+            const price = parseFloat(item.querySelector('.etf-price').value) || 0;
+            const yieldVal = parseFloat(item.querySelector('.etf-yield').value) / 100 || 0;
+            const ratio = parseFloat(item.querySelector('.etf-ratio').value) / 100 || 0;
+            
+            etfs.push({ ticker, price, yieldVal, ratio });
+            
+            weightedAvgYield += yieldVal * ratio;
+            totalRatio += ratio;
+        });
+
+        // --- 檢查分配比例 ---
+        const warning = document.getElementById('allocation-warning');
+        if (Math.round(totalRatio * 100) !== 100 && etfs.length > 0) {
+            warning.style.display = 'block';
+        } else {
+            warning.style.display = 'none';
+        }
+
+        // --- 開始計算 ---
+        const loanMultiplier = 1 + leverageRatio;
+        const loanPortionOfTotal = leverageRatio / loanMultiplier;
+        const effectiveAnnualRate = weightedAvgYield - (loanInterest * loanPortionOfTotal);
+        const targetAnnualIncome = targetMonthlyIncome * 12;
+
+        let totalInvestment = 0;
+        if (effectiveAnnualRate > 0) {
+            totalInvestment = targetAnnualIncome / effectiveAnnualRate;
+        }
+
+        const principal = totalInvestment / loanMultiplier;
+        const loanAmount = totalInvestment - principal;
+        const monthlyInterestPayment = (loanAmount * loanInterest) / 12;
+        
+        const formatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
+
+        // --- 輸出通用結果 ---
+        document.getElementById('target-income-display').textContent = formatter.format(targetMonthlyIncome);
+        document.getElementById('result-principal').textContent = formatter.format(principal);
+        document.getElementById('result-total-investment').textContent = formatter.format(totalInvestment);
+        document.getElementById('result-monthly-interest').textContent = formatter.format(monthlyInterestPayment);
+
+        // --- 輸出各標的詳細結果 ---
+        const resultDetails = document.getElementById('result-details');
+        resultDetails.innerHTML = ''; // 清空舊結果
+
+        etfs.forEach(etf => {
+            const investmentAmount = totalInvestment * etf.ratio;
+            let shares = 0;
+            if (etf.price > 0) {
+                shares = investmentAmount / etf.price;
+            }
+            const sheets = (shares / 1000).toFixed(2);
+            
+            const detailElement = document.createElement('p');
+            detailElement.innerHTML = `
+                <span class="label">需購買 </span><strong>${etf.ticker || '未命名標的'}</strong><span class="label"> 的股數為：</span>
+                <span class="value">${formatter.format(shares)}</span>
+                <span class="label"> 股 (約 <span class="value" style="font-size: 1em;">${sheets}</span> 張)</span>
+            `;
+            resultDetails.appendChild(detailElement);
+        });
+    }
+
+    // 頁面載入時，預先新增兩個範例標的
+    window.onload = function() {
+        addEtf('00937B', '14.96', '5.8', '80');
+        addEtf('00953B', '9.44', '7.7', '20');
+    };
+
+</script>
+
+</body>
+</html>
